@@ -58,10 +58,10 @@ export function getUserProfile () {
         if (!code) {
           throw new Error('Username is null')
         }
-        const singleQuoteRegex = /^'(?:[^'\\]|\\.)*'$/
-        const doubleQuoteRegex = /^"(?:[^"\\]|\\.)*"$/
-        const backtickRegex = /^`(?:[^`\\$]|\\.|\$(?!{))*`$/
-        const numericRegex = /^-?\d+(?:\.\d+)?$/
+        const singleQuoteRegex = /^'(?:[^'\\#]|#(?!{))*'$/
+        const doubleQuoteRegex = /^"(?:[^"\\#]|#(?!{))*"$/
+        const backtickRegex = /^`(?:[^`\\$#]|\\$(?!{)|#(?!{))*`$/
+        const numericRegex = /^[\d\s+\-*/%().]*\d[\d\s+\-*/%().]*$/
         const booleanRegex = /^(?:true|false|null|undefined)$/
 
         const isSafe = singleQuoteRegex.test(code) ||
@@ -73,9 +73,13 @@ export function getUserProfile () {
         if (!isSafe) {
           throw new Error('Unsafe code execution blocked')
         }
-        username = eval(code) // eslint-disable-line no-eval
+        const result = eval(code) // eslint-disable-line no-eval
+        if (typeof result === 'string' && result.includes('#{')) {
+          throw new Error('Unsafe code execution blocked')
+        }
+        username = String(result)
       } catch (err) {
-        username = '\\' + username
+        username = ('\\' + username).replace(/([^\\])#{/g, '$1\\#{')
       }
     } else {
       username = '\\' + username
